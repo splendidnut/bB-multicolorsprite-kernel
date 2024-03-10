@@ -58,15 +58,15 @@
 
     const _Apple_low = <_Apple
     const _Apple_high = >_Apple
-    const _Apple_height = 9
+    const _Apple_height = 10
 
     const _Orange_low = <_OrangeGfx
     const _Orange_high = >_OrangeGfx
-    const _Orange_height = 7
+    const _Orange_height = 8
 
     const _Banana_low = <_BananaGfx
     const _Banana_high = >_BananaGfx
-    const _Banana_height = 8
+    const _Banana_height = 9
 
     const _Pear_low = <_PearGfx
     const _Pear_high = >_PearGfx
@@ -220,7 +220,7 @@ _done_fire
     player1x = frameCounter ;/ 2
     if (player1x > 150) then player1x = 80
 
-    player1y = frameCounter
+    player0y = frameCounter
     
     ;player0y = player0y + 1
 
@@ -239,11 +239,11 @@ _done_fire
 ;--- Subroutine to set multisprites in a pattern for display kernel testing
 
 setTestZone1
-    player1y = 50   ;-- Plane
-    player2y = 30   ;-- banana
-    player3y = 40   ;-- orange
-    player4y = 20   ;-- apple
-    player5y = 10   ;-- pear
+    player1y = 55   ;-- Plane
+    player2y = 33   ;-- banana
+    player3y = 44   ;-- orange
+    player4y = 22   ;-- apple
+    player5y = 11   ;-- pear
     goto MainLoop
 
 ;-------------------------------------------------------------------------
