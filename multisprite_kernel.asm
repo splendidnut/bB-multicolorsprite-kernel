@@ -598,8 +598,9 @@ noUpdateXKR                     ;--- entered at cycle 16
     ;   DRAWING line 2 have occured
     ;--------------------------------------------------------------------------
 RepoKernel                  ;--- enter at 2
-    sleep 6                     ;6  [8]
-
+    lda #0                      ;2  [4]
+    sta.w GRP1                  ;4  [8]
+    
     ;---- check if we need to move to next PF row...
     ;--    ... since we left the Main kernel before that check was done
     tya                         ;2  [10]
