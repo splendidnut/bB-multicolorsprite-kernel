@@ -335,7 +335,7 @@ end
 ;-- These tables are accessed using the COLUx variable from each sprite as an index
 ;-- For each row in this table, the first color is the bottom color of the sprite, moving up towards the top
 
-    PAD_BB_SPRITE_DATA 1
+    PAD_BB_SPRITE_DATA (7*8)
 
     echo "Sprite Color tables start at ", *
 

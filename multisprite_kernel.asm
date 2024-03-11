@@ -846,7 +846,7 @@ BottomOfKernelLoop
     STA HMOVE               ;3  [73]  Early HMOVE
     jmp beginscore          ;3  [76]
 
- align 256
+ align 64
 
 loop2
     lda  (scorepointers),y     ;+5  68  204
@@ -893,6 +893,7 @@ beginscore
     dey
     bpl  loop2           ;+2  60  180
 
+_done_with_score_loop
 
     ldx stack1
     txs
