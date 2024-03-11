@@ -15,8 +15,8 @@
 ;--
 ;--  During the display kernel,
 ;--        COLUP0 starts off being whatever value the user set it to.
-;--        COLUP0 is switched to Player0SwitchColor only when it's 
-;--        time to draw the player.
+;--        COLUP0 will be switched to read from the color table 
+;--           only when it's time to draw the player.
 
     align 256
 
@@ -286,12 +286,7 @@ PrePositionAllObjects
 
 
 
-
-
-;------------------------------------------------------------------------------------------------
-
-KernelSetupSubroutine
-
+ApplyPlayfieldScroll
     ;--- Load playfield pointers for the kernel
 
     lda #<PF1_data0
@@ -309,6 +304,14 @@ KernelSetupSubroutine
     lda #>PF2_data0
     adc #0
     sta PF2pointerHi
+    rts
+
+
+
+;------------------------------------------------------------------------------------------------
+
+KernelSetupSubroutine
+    jsr  ApplyPlayfieldScroll
 
     ;----- Adjust Y positions of Sprite1 .. Sprite5
     ;-----   and create PxBottom cache values for kernel use
@@ -843,8 +846,8 @@ BottomOfKernelLoop
     lda  (scorepointers+8),y;5  [67]
 
     sleep 3                 ;3  [70]
-    STA HMOVE               ;3  [73]  Early HMOVE
-    jmp beginscore          ;3  [76]
+    STA.w HMOVE             ;4  [74]  Early HMOVE
+    jmp beginscore          ;3  [1]
 
  align 64
 
