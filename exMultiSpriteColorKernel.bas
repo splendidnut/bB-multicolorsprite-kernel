@@ -86,6 +86,9 @@
 
     dim FireButtonPressedBit0 = a
     dim frameCounter = b
+    dim curSprite = c
+
+    dim rawScore = score
 
 ;===================================================================================
 ;--  Bank 1 - Game Code!
@@ -165,7 +168,30 @@ end
     frameCounter = 55
     playfieldpos = 0
 
+    curSprite = 0
+
     goto setTestZone1
+
+
+    data ValueToBCD
+    $00,$01,$02,$03,$04,$05,$06,$07,$08,$09
+    $10,$11,$12,$13,$14,$15,$16,$17,$18,$19
+    $20,$21,$22,$23,$24,$25,$26,$27,$28,$29
+    $30,$31,$32,$33,$34,$35,$36,$37,$38,$39
+    $40,$41,$42,$43,$44,$45,$46,$47,$48,$49
+    $50,$51,$52,$53,$54,$55,$56,$57,$58,$59
+    $60,$61,$62,$63,$64,$65,$66,$67,$68,$69
+    $70,$71,$72,$73,$74,$75,$76,$77,$78,$79
+    $80,$81,$82,$83,$84,$85,$86,$87,$88,$89
+    $90,$91,$92,$93,$94,$95,$96,$97,$98,$99
+
+    $00,$01,$02,$03,$04,$05,$06,$07,$08,$09
+    $10,$11,$12,$13,$14,$15,$16,$17,$18,$19
+    $20,$21,$22,$23,$24,$25,$26,$27,$28,$29
+    $30,$31,$32,$33,$34,$35,$36,$37,$38,$39
+    $40,$41,$42,$43,$44,$45,$46,$47,$48,$49
+    $50,$51,$52,$53,$54,$55,$56,$57,$58,$59
+end
 
 ;----------------------------------
 ;-- Main Game loop
@@ -178,15 +204,13 @@ MainLoop
 
     if !joy0up then goto _skip_move_up
     rem if frameCounter = MAX_SCROLL_HEIGHT then _skip_move_up
-    if frameCounter = screenheight then _skip_move_up
-    frameCounter = frameCounter + 1
-    score = score + 1
+    if player0y[curSprite] = screenheight then _skip_move_up
+    player0y[curSprite] = player0y[curSprite] + 1
 _skip_move_up
 
     if !joy0down then goto _skip_move_down
-    if frameCounter = 0 then _skip_move_down
-    frameCounter = frameCounter - 1
-    score = score - 1
+    if player0y[curSprite] = 0 then _skip_move_down
+    player0y[curSprite] = player0y[curSprite] - 1
 _skip_move_down
 
     ;-----
@@ -194,22 +218,34 @@ _skip_move_down
 
     if !joy0right then goto _skip_move_right
     if player0x > 150 then _skip_move_right
-    player0x = player0x + 1
+    player0x[curSprite] = player0x[curSprite] + 1
 _skip_move_right
 
     if !joy0left then goto _skip_move_left
     if player0x = 0 then _skip_move_left
-    player0x = player0x - 1
+    player0x[curSprite] = player0x[curSprite] - 1
 _skip_move_left
 
 
+    ;------ show position of sprite in scoreboard
+
+    temp1 = player0x[curSprite]
+    rawScore[1] = ValueToBCD[temp1]
+
+    temp1 = player0y[curSprite]
+    rawScore[2] = ValueToBCD[temp1]
+
     ;---- fun fire button code!
+    ;---- move to next sprite
     if !joy0fire then goto _skip_fire
     if FireButtonPressedBit0{0} then goto _done_fire
 
     FireButtonPressedBit0{0} = 1
-    score = score + 1
-    frameCounter = frameCounter + 1
+
+    score = 0
+
+    curSprite = curSprite + 1
+    if curSprite = 6 then curSprite = 0
     goto _done_fire
 
 _skip_fire
@@ -217,10 +253,10 @@ _skip_fire
 
 _done_fire
 
-    player1x = frameCounter ;/ 2
-    if (player1x > 150) then player1x = 80
+    ;player1x = frameCounter ;/ 2
+    ;if (player1x > 150) then player1x = 80
 
-    player0y = frameCounter
+    ;player0y = frameCounter
     
     ;player0y = player0y + 1
 
