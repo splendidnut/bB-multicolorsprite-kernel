@@ -361,10 +361,9 @@ AdjustYValuesUpLoop
     
 
 nottoohigh
-
-    ;------- setup an "empty index" which actually points to the first sprite
-    lda #0
-    sta EmptySpriteGfxIndex
+    ;------- setup an "empty index" which actually points to the first sprite drawn
+    lda  SpriteGfxIndex+4
+    sta  EmptySpriteGfxIndex
     rts
 
 ;-------------------------------------------------------------------------
