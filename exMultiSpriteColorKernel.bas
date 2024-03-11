@@ -227,14 +227,18 @@ _skip_move_right
 _skip_move_left
 
 
+    ;------------------------------------------------
     ;------ show position of sprite in scoreboard
+    rawScore[0] = curSprite
 
     temp1 = player0x[curSprite]
     rawScore[1] = ValueToBCD[temp1]
 
     temp1 = player0y[curSprite]
     rawScore[2] = ValueToBCD[temp1]
+    
 
+    ;-----------------------------------------------
     ;---- fun fire button code!
     ;---- move to next sprite
     if !joy0fire then goto _skip_fire
