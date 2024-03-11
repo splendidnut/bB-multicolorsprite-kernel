@@ -22,8 +22,7 @@
 
 __MCMSK_START:
 
-    echo "Multi-sprite kernel starts at ", __MCMSK_START
-
+_show_kernel_stats = 1     ;--- comment this out to hide kernel stats display during build
 
 ;--------------------------------------------------
 ;--- Constants
@@ -396,9 +395,6 @@ FineAdjustTableBegin
     ;-- label used when table is accessed via forced page-crossing
 FineAdjustTableEnd        =        (FineAdjustTableBegin - 241)
 
-    
-    echo " Find Adjust table at: ", FineAdjustTableBegin
-    echo " Find Adjust accessed at: ", FineAdjustTableEnd
 
 
 
@@ -790,8 +786,6 @@ WaitDrawP0KV                ;----- enter at cycle 50
 
 END_OF_KERNEL_ROUTINES:
 
-    echo "Multi-Sprite Kernel at ", START_OF_KERNEL_ROUTINES, "..", END_OF_KERNEL_ROUTINES
-    echo "Size of Multi-Sprite kernel(s): ", (END_OF_KERNEL_ROUTINES - START_OF_KERNEL_ROUTINES)
 
 
 ;-------------------------------------------------------------------------
@@ -1257,5 +1251,18 @@ P0ColorPatch:
 NoColorPatch:
     rts
 
+;-----------------------------------------------------------------------
+__MCMSK_END:
+  ifconst _show_kernel_stats
+    echo "---------------------------------------------------------"
+    echo "Multi-sprite code starts at ", __MCMSK_START
 
-    echo "Multi-sprite kernel ends at ", *
+    echo " Find Adjust table at:      ", FineAdjustTableBegin
+    echo " Find Adjust accessed at:   ", FineAdjustTableEnd
+
+    echo "Multi-Sprite Kernel at      ", START_OF_KERNEL_ROUTINES, "..", END_OF_KERNEL_ROUTINES
+    echo "     Size of kernel(s)       ", (END_OF_KERNEL_ROUTINES - START_OF_KERNEL_ROUTINES)
+
+    echo "Multi-sprite code ends at   ", __MCMSK_END
+    echo "---------------------------------------------------------"
+  endif
