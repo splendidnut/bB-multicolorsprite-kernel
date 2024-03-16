@@ -79,6 +79,8 @@
     const PLAYFIELD_HEIGHT  = 90
     const MAX_SCROLL_HEIGHT = 46    ;-- 90 - 44 (visible)
 
+    const SPR_MAX_Y         = 96    ;-- screenheight + spriteheight
+
 
 ;==============================
 ;----- Variables
@@ -87,6 +89,7 @@
     dim FireButtonPressedBit0 = a
     dim frameCounter = b
     dim curSprite = c
+    dim debounce = d
 
     dim rawScore = score
 
@@ -95,30 +98,12 @@
 
     bank 1
 
-;---------------------------------
-;-- {1} = sprite number
-;-- {2} = data label
-    asm
-    macro setSpriteGraphics
-.src = {2}
-.dstLo = player{1}pointerlo
-.dstHi = player{1}pointerhi
-        LDA #<.src
-        STA .dstLo
-        LDA #>.src
-        STA .dstHi
-    endm
-end
 
 Start
-
     player0x = 76
     player0y = 25
-    ;player0pointerlo = _Player0_Plane_up_low
-    ;player0pointerhi = _Player0_Plane_up_high
-    asm
-    setSpriteGraphics  0, _Player0_Plane_up
-end
+    player0pointerlo = _Player0_Plane_up_low
+    player0pointerhi = _Player0_Plane_up_high
     player0height = _Player0_Plane_up_height
 
     player1x = 76
@@ -165,8 +150,10 @@ end
     _COLUP0 = _CI_Plane ;_CI_WhitePlayerPlane
 
     pfheight = 1
-    frameCounter = 55
     playfieldpos = 0
+
+    frameCounter = 0
+    debounce = 0
 
     curSprite = 0
 
@@ -199,18 +186,21 @@ end
 ;
 ;-- check joystick direction, and move player accordingly
 ;--
-
+    const DEBOUNCE_DELAY = 2
 MainLoop
+    if debounce > 0 then debounce = debounce - 1 : goto _skip_joystick_dir
 
     if !joy0up then goto _skip_move_up
     rem if frameCounter = MAX_SCROLL_HEIGHT then _skip_move_up
-    if player0y[curSprite] = screenheight then _skip_move_up
+    if player0y[curSprite] = SPR_MAX_Y then _skip_move_up
     player0y[curSprite] = player0y[curSprite] + 1
+    debounce = DEBOUNCE_DELAY
 _skip_move_up
 
     if !joy0down then goto _skip_move_down
     if player0y[curSprite] = 0 then _skip_move_down
     player0y[curSprite] = player0y[curSprite] - 1
+    debounce = DEBOUNCE_DELAY
 _skip_move_down
 
     ;-----
@@ -219,13 +209,17 @@ _skip_move_down
     if !joy0right then goto _skip_move_right
     if player0x > 150 then _skip_move_right
     player0x[curSprite] = player0x[curSprite] + 1
+    debounce = DEBOUNCE_DELAY
 _skip_move_right
 
     if !joy0left then goto _skip_move_left
     if player0x = 0 then _skip_move_left
     player0x[curSprite] = player0x[curSprite] - 1
+    debounce = DEBOUNCE_DELAY
 _skip_move_left
 
+
+_skip_joystick_dir
 
     ;------------------------------------------------
     ;------ show position of sprite in scoreboard
@@ -236,7 +230,7 @@ _skip_move_left
 
     temp1 = player0y[curSprite]
     rawScore[2] = ValueToBCD[temp1]
-    
+
 
     ;-----------------------------------------------
     ;---- fun fire button code!
@@ -257,19 +251,7 @@ _skip_fire
 
 _done_fire
 
-    ;player1x = frameCounter ;/ 2
-    ;if (player1x > 150) then player1x = 80
-
-    ;player0y = frameCounter
-    
-    ;player0y = player0y + 1
-
-
-    ;-----------------------------------------------------
-    ;--  setup playfield pointer for multisprite kernel
-
-    ;playfieldpos = frameCounter
-
+    frameCounter = frameCounter + 1
 
     drawscreen
     goto MainLoop
@@ -281,7 +263,7 @@ _done_fire
 setTestZone1
     player1y = 55   ;-- Plane
     player2y = 33   ;-- banana
-    player3y = 44   ;-- orange
+    player3y = 75   ;-- orange
     player4y = 22   ;-- apple
     player5y = 11   ;-- pear
     goto MainLoop
@@ -351,35 +333,19 @@ end
     bank 2
 
 
-;---
-;--- The following macro helps keep sprite graphics contained within a page.
-;---
-    asm
-      MAC PAD_BB_SPRITE_DATA
-.SPRITE_HEIGHT  SET {1}
-      if	(<*) > (<(*+.SPRITE_HEIGHT))
-      repeat	($100-<*)
-      .byte	0
-      repend
-      endif
-      if (<*) < 90
-	   repeat (90-<*)
-	   .byte 0
-	   repend
-	   endif
-   ENDM
-
 ;-----------------------------------------------------------------------------------
 ;--  Color tables used for the shared P1 sprite
 ;
 ;-- These tables are accessed using the COLUx variable from each sprite as an index
 ;-- For each row in this table, the first color is the bottom color of the sprite, moving up towards the top
 
+    asm
     PAD_BB_SPRITE_DATA (7*8)
 
     echo "Sprite Color tables start at ", *
 
 SpriteColorTables:
+ct_unused:              .byte 0,0,0,0,0,0,0,0,0,0   ;-- padding to support sprites going off top of screen
 
 ;-- B&W palettes (dark and light)
 ct_black:               .byte _00,_00,_02,_04,_00,_02,_02,_04

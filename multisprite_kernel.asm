@@ -2,6 +2,11 @@
 ;---    bBasic Multi-sprite kernel - customized to add multi-color support
 ;---
 ;----------------------------------------------------------------------------
+;-
+;- Kernel code based on modifications written for 1942.
+;-     AtariAge topic: https://atariage.com/forums/topic/176639-1942-wip/
+;-
+;----------------------------------------------------------------------------
 ; Provided under the CC0 license. See the included LICENSE.txt for details.
 ;----------------------------------------------------------------------------
 ;
@@ -48,7 +53,7 @@ KERNEL_VBLANK_TIME      = (vblank_time+9+128)
 
 CNT_SPRITES_SORT        = 4  ;-- how many sprites_to_sort-1
 
-
+SPR_MAX_OFFSCREEN_Y = 96   ;85            ; screenheight-3  -- how far up can sprite go
 
 ;--------------------------------------------------
 ;--- Temporary Variables
@@ -61,14 +66,29 @@ player0colorP = $F7
 player0colorPlo = $F7
 player0colorPhi = $F8
 
-;player1colorP = $F8
-;player1colorPlo = $F8
-;player1colorPhi = $F9
-
 patchCOLP0_0  = $F9    ;-- patch in player 0 color
 patchCOLP0_1  = $FA    ;-- patch in player 0 color
 curCOLP1      = $FB
 curRowPF      = $FC
+
+
+
+;---
+;--- The following macro helps keep sprite graphics contained within a page.
+;---
+  MAC PAD_BB_SPRITE_DATA
+.SPRITE_HEIGHT  SET {1}
+    if	(<*) > (<(*+.SPRITE_HEIGHT))
+        repeat	($100-<*)
+            .byte 0
+        repend
+    endif
+    if (<*) < 90
+	    repeat (90-<*)
+	        .byte 0
+	    repend
+	endif
+  ENDM
 
 ;==================================================================
 ;==== CODE
@@ -102,7 +122,45 @@ SetCopyHeight
     rts
 
 
+
+;----------------------------------------------------------------------
+;--  Horizontal Position Routine
+;----------------------------------------------------------------------
+; Call this function with 
+;       A == horizontal position (0-159)
+;   and X == the object to be positioned (0=P0, 1=P1, 2=M0, etc.)
+;
+; If you do not wish to write to P1 during this function, make
+; sure Y==0 before you call it.  This function will change Y, and A
+; will be the value put into HMxx when returned.
+; Call this function with at least 11 cycles left in the scanline 
+; (jsr + sec + sta WSYNC = 11); it will return 9 cycles
+; into the second scanline
+
+PositionASpriteSubroutine        
+    sec
+    sta WSYNC                   ;begin line 1
+    sta.w HMCLR                 ;+4         4
+DivideBy15Loop
+    sbc #15
+    bcs DivideBy15Loop          ;+4/5        8/13.../58
+
+    tay                         ;+2        10/15/...60
+    lda FineAdjustTableEnd,Y    ;+5        15/20/...65
+
+                                ;        15
+    sta HMP0,X                  ;+4        19/24/...69
+    sta RESP0,X                 ;+4        23/28/33/38/43/48/53/58/63/68/73
+    sta WSYNC                   ;+3         0        begin line 2
+    sta HMOVE                   ;+3
+    rts                         ;+6         9
+
+   
+
+
+
 ;=====================================================================
+;-- DrawScreen
 ;---------------------------------------------------------------------
 
 
@@ -139,16 +197,12 @@ WaitForOverscanEnd
 
     jsr PrePositionAllObjects
 
-    ;--set up player 0 pointer
 
-    ;---- setup temp7 with position to switch COLUP0
-    lda player0y
-    adc #2
-    sta temp7
+    ;------------------------
+    ;-- prepare player 0 pointer for kernel
+    ;-    this is re-adjusted at the end of the kernel
 
-
-    ;------------------------ setup player0 positioning
-    lda player0pointer ; player0: must be run every frame!
+    lda player0pointer
     sec
     sbc player0y
     clc
@@ -198,116 +252,17 @@ _no_colup0_inc2:
 
     jsr setupColorPatchForP0
 
+    ;-----  prepare player0 y counter
+    lda player0y
+    cmp #SCREEN_HEIGHT + 1                ;--- screenheight + 1
+    bcc nottoohigh
 
+    lda P0Bottom
+    sta P0Top
+nottoohigh
 
-;-----------------------------
-
-    ;--some final setup
-
-    ldx #4
-    lda #$80
-cycle74_HMCLR
-    sta HMP0,X
-    dex
-    bpl cycle74_HMCLR
-;    sta HMCLR
-
-
-    lda #0
-    sta PF1
-    sta PF2
-    sta GRP0
-    sta GRP1
-    sta VDELP0
-    sta VDELBL
-
-
-    jsr KernelSetupSubroutine
-    jmp NewStartForKernelRoutine
-
-
-;----------------------------------------------------------------------
-;--  Horizontal Position Routine
-;----------------------------------------------------------------------
-; Call this function with 
-;       A == horizontal position (0-159)
-;   and X == the object to be positioned (0=P0, 1=P1, 2=M0, etc.)
-;
-; If you do not wish to write to P1 during this function, make
-; sure Y==0 before you call it.  This function will change Y, and A
-; will be the value put into HMxx when returned.
-; Call this function with at least 11 cycles left in the scanline 
-; (jsr + sec + sta WSYNC = 11); it will return 9 cycles
-; into the second scanline
-
-PositionASpriteSubroutine        
-    sec
-    sta WSYNC                   ;begin line 1
-    sta.w HMCLR                 ;+4         4
-DivideBy15Loop
-    sbc #15
-    bcs DivideBy15Loop          ;+4/5        8/13.../58
-
-    tay                         ;+2        10/15/...60
-    lda FineAdjustTableEnd,Y    ;+5        15/20/...65
-
-                                ;        15
-    sta HMP0,X                  ;+4        19/24/...69
-    sta RESP0,X                 ;+4        23/28/33/38/43/48/53/58/63/68/73
-    sta WSYNC                   ;+3         0        begin line 2
-    sta HMOVE                   ;+3
-    rts                         ;+6         9
-
-   
-
-;-------------------------------------------------------------------------
-
-PrePositionAllObjects
-
-    ldx #4
-    lda ballx
-    jsr PositionASpriteSubroutine
-    
-    dex
-    lda missile1x
-    jsr PositionASpriteSubroutine
-    
-    dex
-    lda missile0x
-    jsr PositionASpriteSubroutine
-
-    dex
-    dex
-    lda player0x
-    jsr PositionASpriteSubroutine
-
-    rts
-
-
-
-ApplyPlayfieldScroll
-    ;--- Load playfield pointers for the kernel
-
-    lda #<PF1_data0
-    clc
-    adc playfieldpos
-    sta PF1pointer
-    lda #>PF1_data0
-    adc #0
-    sta PF1pointerHi
-
-    lda #<PF2_data0
-    clc
-    adc playfieldpos
-    sta PF2pointer
-    lda #>PF2_data0
-    adc #0
-    sta PF2pointerHi
-    rts
-
-
-
-;------------------------------------------------------------------------------------------------
+    ;-------------------------
+    ;--- more kernel setup
 
 KernelSetupSubroutine
     jsr  ApplyPlayfieldScroll
@@ -328,7 +283,62 @@ AdjustYValuesUpLoop
     dex
     bpl AdjustYValuesUpLoop
 
-    ;------
+    ;------------------- initialize other kernel variables
+    ldx #255
+    stx P1Bottom
+    inx
+    stx curCOLP1
+
+    ;-----------------------------------------------------
+    ;---- handle any virtual sprite at top of screen
+
+    ldx temp3               ;-- first sprite displayed
+    ldy SpriteGfxIndex,x
+
+    lda NewSpriteY,y
+    sbc #screenheight
+    bcc _kernel_no_sprite_at_top
+    sbc #2
+    sta temp1
+
+    ;------------------------------------------------------------
+    ;---- load first sprite (clipped at top of screen)  
+
+    ;--- make sure to horizontally position the sprite if it's being displayed
+    lda NewSpriteX,y
+    clc                 ;-- TODO: fix?  patch around the fact that initial (top of screen)
+    sbc #0              ;--      positioning and repo positioning differ by 1 pixel
+    ldx #1
+    jsr PositionASpriteSubroutine
+
+    ldx temp3               ;-- first sprite displayed
+    ldy SpriteGfxIndex,x
+      
+    lda NewNUSIZ,y              ;-- load in size and color for new sprite
+    sta NUSIZ1
+    sta REFP1
+    
+    lda NewCOLUP1,y
+    clc
+    adc temp1
+    sta curCOLP1
+
+    sec
+
+    lda P1BottomCache,y         ;-- load in bottom of new sprite
+    sta P1Bottom
+
+    lda player1pointerlo,y
+    sbc P1Bottom                ;--  carry should still be set
+    sta P1display
+    lda player1pointerhi,y
+    sta P1display+1
+
+    dec temp3
+
+    ;---------------------------------------------------------
+_kernel_no_sprite_at_top
+
 
     ldx temp3 ; first sprite displayed
 
@@ -344,27 +354,36 @@ AdjustYValuesUpLoop
 
     inx                 ;--- use sprite 0 AS no more sprites indicator
     stx SpriteIndex
-
-
-    ;------------------- initialize other kernel variables
-    lda #255
-    sta P1Bottom
-
-    lda player0y
-
-    cmp #SCREEN_HEIGHT + 1                ;--- screenheight + 1
-
-    bcc nottoohigh
-    lda P0Bottom
-    sta P0Top                
-
     
-
-nottoohigh
     ;------- setup an "empty index" which actually points to the first sprite drawn
     lda  SpriteGfxIndex+4
     sta  EmptySpriteGfxIndex
-    rts
+
+
+    ;--------------------------------------------------
+    ;-- prepare for cycle 74 hmoves during kernel
+
+    ldx #4
+    lda #$80
+cycle74_HMCLR
+    sta HMP0,X
+    dex
+    bpl cycle74_HMCLR
+
+    ;-----------------------------------
+    ;--- clear some TIA registers
+    lda #0
+    sta PF1
+    sta PF2
+    sta GRP0
+    sta GRP1
+    sta VDELP0
+    sta VDELBL
+
+    jmp NewStartForKernelRoutine
+
+
+
 
 ;-------------------------------------------------------------------------
 ;------------------------------------------------------------------------
@@ -421,7 +440,7 @@ WaitVblankEnd
     sta WSYNC                   ;3  [0]
     sta VBLANK                  ;3  [3] - turn off VBLANK
     sta CXCLR                   ;3  [6]
-    sta curCOLP1                ;3  [9]
+    ;sta curCOLP1                ;3  [9]
     
     tsx                         ;2  [11]
     stx stack1                  ;3  [14]
@@ -441,7 +460,8 @@ asdhj
     sbc  #PF_START_OFS          ;2  [36]
     sta  curRowPF               ;3  [39]
 
-    nop                         ;2  [41]
+    ;nop                         ;2  [41]
+    sleep 5
 
     jmp     KernelLoopA         ;3  [44]
 
@@ -489,19 +509,19 @@ KernelLoopB                 ;----- enter at 54
 
 BackFromSwitchDrawP0K1      ;-- enter at cycle 4
 
-    sleep 8                     ;8  [12]
+    sleep 6                     ;6  [10]
  
-    ldy curRowPF                ;3  [15]    -- restore playfield row counter    
-    lda (PF1pointer),y          ;5  [20]    -- load in playfield data
-    sta PF1                     ;3  *23*  (needs to be < 28)
-    lda (PF2pointer),y          ;5  [28]
-    sta PF2                     ;3  *31*  (needs to be < 38)
+    ldy curRowPF                ;3  [13]    -- restore playfield row counter    
+    lda (PF1pointer),y          ;5  [18]    -- load in playfield data
+    sta PF1                     ;3  *21*  (needs to be < 28)
+    lda (PF2pointer),y          ;5  [26]
+    sta PF2                     ;3  *29*  (needs to be < 38)
 
     ;--- load P1 colors (do everything except the STA)
 
-    ldy curCOLP1                ;3  [34]
-    lda SpriteColorTables,y     ;4  [38]
-    inc curCOLP1                ;5  [43]
+    ldy curCOLP1                ;3  [32]
+    lda SpriteColorTables,y     ;4  [36]
+    inc curCOLP1                ;5  [41]
     
     ldy tmpSprLine              ;3  [46]
     
@@ -544,6 +564,7 @@ BackFromSkipDrawP1_2
 
     nop                         ;2  [34]
     nop                         ;2  [36]
+    nop
 
 BackFromRepoKernel              ;--- enter at 36
     tya                         ;2  [38]
@@ -946,7 +967,6 @@ AdjustYValuesDownLoop
     sec
     sbc player0height
     sta player0pointer
-    ;inc player0y
 
 
     RETURN        ;--- Display kernel is done, return to appropriate address
@@ -1060,7 +1080,6 @@ SetupP1Subroutine
 ; detect overlap of sprites in table 2
 ; if overlap, do regular sort in table2, then place one sprite at top of table 1, decrement # displayed
 ; if no overlap, do regular sort in table 2 and table 1
-fsstart
     ldx #255
 copytable
     inx
@@ -1141,13 +1160,14 @@ checktoohigh
     lda SpriteGfxIndex,x
     tax
     lda NewSpriteY,x
-    cmp #$55            ; screenheight-3
+    cmp #SPR_MAX_OFFSCREEN_Y
     bcc nonetoohigh
     dec temp3
     bne checktoohigh
 
 nonetoohigh
     rts
+
 
 
 shiftnumbers
@@ -1249,6 +1269,53 @@ P0ColorPatch:
 
 NoColorPatch:
     rts
+
+
+
+ApplyPlayfieldScroll
+    ;--- Load playfield pointers for the kernel
+
+    lda #<PF1_data0
+    clc
+    adc playfieldpos
+    sta PF1pointer
+    lda #>PF1_data0
+    adc #0
+    sta PF1pointerHi
+
+    lda #<PF2_data0
+    clc
+    adc playfieldpos
+    sta PF2pointer
+    lda #>PF2_data0
+    adc #0
+    sta PF2pointerHi
+    rts
+
+
+;-------------------------------------------------------------------------
+
+PrePositionAllObjects
+
+    ldx #4
+    lda ballx
+    jsr PositionASpriteSubroutine
+    
+    dex
+    lda missile1x
+    jsr PositionASpriteSubroutine
+    
+    dex
+    lda missile0x
+    jsr PositionASpriteSubroutine
+
+    dex
+    dex
+    lda player0x
+    jsr PositionASpriteSubroutine
+
+    rts
+
 
 ;-----------------------------------------------------------------------
 __MCMSK_END:
