@@ -1,7 +1,7 @@
 # bB-multicolorsprite-kernel
 A batariBasic kernel for handling multiple multi-colored sprites.
 
-To use this kernel in your project, drop the files in your project folder.  The batariBasic compiler will use automatically use these files versus it's own when the multisprite kernel option is selected in the BAS file.
+To use this kernel in your project, all you need to do is drop the files in your project folder.  The batariBasic compiler will automatically use these files (versus it's own) when the multisprite kernel option is selected in the BAS source file.
 
 Overview of Files:
  - NTSC_PAL_colors.asm  - provides the typical underscore-hex-named color consts (_00.._FF) that make it easy to switch between PAL and NTSC colors in your project
