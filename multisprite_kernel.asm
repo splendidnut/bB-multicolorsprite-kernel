@@ -826,89 +826,89 @@ BottomOfKernelLoop
 
     sta WSYNC
     sta HMCLR               ;3  [3]
-
     lda #$01                ;2  [5]
     sta CTRLPF              ;3  [8]
-
     ldy #7                  ;2  [10]
     sty VDELP0              ;3  [13]
     sty VDELP1              ;3  [16]
-    LDA #$10                ;2  [18]
+    LDA #$40                ;2  [18]
     STA HMP1                ;3  [21]
-    LDA scorecolor          ;3  [24]
-    STA COLUP0              ;3  [27]
-    STA COLUP1              ;3  [30]
+	LDA #$30				;2	[23]
+	STA HMP0				;3  [26]
+    LDA scorecolor          ;3  [29]
+    STA COLUP0              ;3  [32]
+    STA COLUP1              ;3  [35]
     
-    LDA #$03                ;2  [32]
-    STA NUSIZ0              ;3  [35]
-    STA NUSIZ1              ;3  [38]
+    LDA #$03                ;2  [37]
+    STA NUSIZ0              ;3  [40]
 
-    STA RESP0               ;3  *41*
-    STA RESP1               ;3  *44*
+    STA RESP0               ;3  *43*
+    STA RESP1               ;3  *46*
 
-    sleep 4                 ;4  [48]
+    STA NUSIZ1              ;3  [49]
 
-    lda  (scorepointers),y  ;5  [53]
-    sta  GRP0               ;3  [56]
+    lda  (scorepointers),y  ;5  [54]
+    sta  GRP0               ;3  [57]
   ifconst pfscore
-    lda pfscorecolor        ;3  [59]
-    sta COLUPF              ;3  [62]
+    lda pfscorecolor        ;3  [60]
+    sta COLUPF              ;3  [63]
   else
-    sleep 6                 ;6  [62]
+    sleep 6                 ;6  [63]
   endif
 
-    lda  (scorepointers+8),y;5  [67]
+    lda  (scorepointers+8),y;5  [68]
 
-    sleep 3                 ;3  [70]
-    STA.w HMOVE             ;4  [74]  Early HMOVE
-    jmp beginscore          ;3  [1]
+    sleep 2                 ;2  [70]
+    STA HMOVE               ;3  [73]  Early HMOVE
+	sleep 2					;2	[75]
+    jmp beginscore          ;3  [2]
 
- align 64
+  ;align 64
 
-loop2
-    lda  (scorepointers),y     ;+5  68  204
-    sta  GRP0            ;+3  71  213      D1     --      --     --
+loop2                           ;----- enter at 59
+    lda  (scorepointers),y      ;5  [64]
+    sta  GRP0                   ;3  [67]      D1     --      --     --
   ifconst pfscore
-  if pfscore = 1 || pfscore = 3
-    lda pfscore1
-    sta PF1
+    if pfscore = 1 || pfscore = 3
+      lda pfscore1              ;3  [70]
+      sta PF1                   ;3  [73]
+    else
+      lda #0                    ;2  [69]
+      sta.w PF1                 ;3  [72]
+    endif
   else
-    lda #0
-    sta PF1
-    nop
+    sleep 6                     ;6  [73]
   endif
-  else
-    sleep 6
-  endif
-    ; cycle 0
-    lda  (scorepointers+$8),y   ;+5   5   15
-beginscore
-    sta  GRP1                   ;+3   8   24      D1     D1      D2     --
-    lda  (scorepointers+$6),y   ;+5  13   39
-    sta  GRP0                   ;+3  16   48      D3     D1      D2     D2
-    lax  (scorepointers+$2),y   ;+5  29   87
-    txs
-    lax  (scorepointers+$4),y   ;+5  36  108
-    sleep 4
+
+    lda  (scorepointers+$8),y   ;5  [2]
+
+beginscore						;----- enter at 2
+    sta  GRP1                   ;3  [5]      D1     D1      D2     --
+    lda  (scorepointers+$6),y   ;5  [10]
+    sta  GRP0                   ;3  [13]     D3     D1      D2     D2
+    lax  (scorepointers+$2),y   ;5  [18]
+    txs                         ;2  [20]
+    lax  (scorepointers+$4),y   ;5  [25]
+    sleep 4                     ;4  [29]
   ifconst pfscore
   if pfscore > 1
-    lda statusbarlength
-    sta PF1
+    lda statusbarlength         ;3  [32]
+    sta PF1                     ;3  [35]
   else
-    lda #0
-    sta.w PF1
+    lda #0                      ;2  [31]
+    sta.w PF1                   ;4  [35]
   endif
   else
-    sleep 6
+    sleep 6                     ;6  [35]
   endif
-    lda  (scorepointers+$A),y   ;+5  21   63
-    stx  GRP1                   ;+3  44  132      D3     D3      D4     D2!
-    tsx
-    stx  GRP0                   ;+3  47  141      D5     D3!     D4     D4     ..[42,43,44]
-    sta  GRP1                   ;+3  50  150      D5     D5      D6     D4!
-    sty  GRP0                   ;+3  53  159      D4*    D5!     D6     D6
-    dey
-    bpl  loop2           ;+2  60  180
+    lda  (scorepointers+$A),y   ;5  [40]
+    stx  GRP1                   ;3  [43]     D3     D3      D4     D2!
+    tsx                         ;2  [45]
+    stx  GRP0                   ;3  [48]      D5     D3!     D4     D4     ..[42,43,44]
+    sta  GRP1                   ;3  [51]      D5     D5      D6     D4!
+    sty  GRP0                   ;3  [54]      D4*    D5!     D6     D6
+    dey                         ;2  [56]
+    bpl  loop2                  ;3  [59]
 
 _done_with_score_loop
 
